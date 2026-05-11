@@ -8,6 +8,7 @@ import {
   Users, 
   FileText,
   Heart,
+  FolderDown,
   Settings, 
   Bell, 
   HelpCircle,
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { name: "Organization", href: "/organization", icon: Users },
   { name: "Donations", href: "/donations", icon: Heart },
   { name: "Reports", href: "/reports", icon: FileText },
+  { name: "Forms", href: "/forms", icon: FolderDown },
 ];
 
 const SECONDARY_NAV = [
