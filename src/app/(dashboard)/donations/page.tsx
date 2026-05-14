@@ -1,12 +1,16 @@
-import { ReportsContainer } from "@/features/reports/components/ReportsContainer";
+import { DonationsContainer } from "@/features/donations/components/DonationsContainer";
+import { getDonations } from "@/features/donations/services/donations";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Daily Accomplishments | Brigada Eskwela 2026-2027",
-  description: "View daily reports and accomplishments for Brigada Eskwela 2026-2027.",
+  title: "Donation Records | Brigada Eskwela 2026-2027",
+  description: "Official record of materials and donations received for Brigada Eskwela 2026-2027.",
 };
 
-export default function ReportsPage() {
+export default async function DonationsPage() {
+  // Server-side fetch
+  const initialData = await getDonations();
+
   return (
     <div className="min-h-screen relative">
       {/* Background Decor - Subtle light blue glow */}
@@ -16,7 +20,7 @@ export default function ReportsPage() {
       </div>
 
       <div className="relative z-10">
-        <ReportsContainer />
+        <DonationsContainer initialData={initialData} />
       </div>
 
       {/* Footer */}

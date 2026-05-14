@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
 import { SidebarProvider } from "@/context/SidebarContext";
-import { MainContent } from "@/components/layout/MainContent";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,10 +25,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full bg-[#fcfcfd] font-sans">
         <SidebarProvider>
-          <div className="flex">
-            <Sidebar />
-            <MainContent>{children}</MainContent>
-          </div>
+          {children}
         </SidebarProvider>
       </body>
     </html>

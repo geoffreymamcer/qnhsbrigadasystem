@@ -1,71 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/lib/utils/utils";
-import { Search, Filter, Plus, Heart } from "lucide-react";
+import { Search, Filter, Plus, Heart, Trash2, Package, FileDown } from "lucide-react";
 import { DonationModal } from "./DonationModal";
+import { Donation } from "../types";
+import { deleteDonation } from "../services/donations";
+import { generateDonationsPDF } from "../utils/pdf-generator";
+import { motion, AnimatePresence } from "framer-motion";
 
-const DONATIONS_DATA = [
-  {
-    id: "DON-001",
-    item: "Latex Paint (White)",
-    quantity: 10,
-    unit: "pails",
-    dateReceived: "05/01/2026",
-    donor: "Boysen Philippines",
-    unitCost: 2500,
-    totalCost: 25000,
-  },
-  {
-    id: "DON-002",
-    item: "Cement (40kg)",
-    quantity: 50,
-    unit: "bags",
-    dateReceived: "05/03/2026",
-    donor: "Republic Cement",
-    unitCost: 280,
-    totalCost: 14000,
-  },
-  {
-    id: "DON-003",
-    item: "Fluorescent Bulbs (LED)",
-    quantity: 100,
-    unit: "pcs",
-    dateReceived: "05/04/2026",
-    donor: "Firefly Electric",
-    unitCost: 180,
-    totalCost: 18000,
-  },
-  {
-    id: "DON-004",
-    item: "Plywood (1/4)",
-    quantity: 20,
-    unit: "sheets",
-    dateReceived: "05/05/2026",
-    donor: "Local Alumni Batch '95",
-    unitCost: 450,
-    totalCost: 9000,
-  },
-  {
-    id: "DON-005",
-    item: "Corrugated Roofing",
-    quantity: 30,
-    unit: "sheets",
-    dateReceived: "05/06/2026",
-    donor: "Rotary Club of San Pablo",
-    unitCost: 1200,
-    totalCost: 36000,
-  },
-];
 
-export const DonationsContainer = () => {
+interface DonationsContainerProps {
+  initialData: Donation[];
+}
+
+export const DonationsContainer = ({ initialData }: DonationsContainerProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(val);
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this record?")) return;
+    setIsDeleting(id);
+    try {
+      await deleteDonation(id);
+    } catch (error) {
+      alert("Failed to delete record.");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const totalValue = initialData.reduce((acc, curr) => acc + (Number(curr.total_cost) || 0), 0);
+  const uniqueDonors = new Set(initialData.map(d => d.donor_name)).size;
+
   return (
     <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto py-8 px-4">
-      {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -79,6 +50,13 @@ export const DonationsContainer = () => {
         
         <div className="flex items-center gap-3">
           <button 
+            onClick={() => generateDonationsPDF(initialData)}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all active:scale-[0.98]"
+          >
+            <FileDown className="w-4 h-4" />
+            Export to PDF
+          </button>
+          <button 
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-primary text-white font-bold text-sm shadow-lg shadow-blue-primary/20 hover:scale-[1.02] transition-all active:scale-[0.98]"
           >
@@ -86,6 +64,7 @@ export const DonationsContainer = () => {
             Record New Donation
           </button>
         </div>
+
       </div>
 
       <DonationModal 
@@ -93,39 +72,21 @@ export const DonationsContainer = () => {
         onClose={() => setIsModalOpen(false)} 
       />
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Received Value</p>
-          <h3 className="text-2xl font-black text-slate-900">{formatCurrency(102000)}</h3>
+          <h3 className="text-2xl font-black text-slate-900">{formatCurrency(totalValue)}</h3>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Entries</p>
-          <h3 className="text-2xl font-black text-slate-900">5 Records</h3>
+          <h3 className="text-2xl font-black text-slate-900">{initialData.length} Records</h3>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Donors</p>
-          <h3 className="text-2xl font-black text-slate-900">5 Unique Donors</h3>
+          <h3 className="text-2xl font-black text-slate-900">{uniqueDonors} Unique Donors</h3>
         </div>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search by donor or material..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-primary/20 transition-all"
-          />
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
-          <Filter className="w-4 h-4" />
-          Filter Date
-        </button>
-      </div>
-
-      {/* Donations Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -137,35 +98,54 @@ export const DonationsContainer = () => {
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Donor</th>
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Unit Cost</th>
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Total Cost</th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {DONATIONS_DATA.map((donation) => (
-                <tr key={donation.id} className="group hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-5">
-                    <p className="text-sm font-black text-slate-900 group-hover:text-blue-primary transition-colors">{donation.item}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{donation.id}</p>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className="text-sm font-bold text-slate-600">{donation.quantity} {donation.unit}</span>
-                  </td>
-                  <td className="px-6 py-5 text-sm font-bold text-slate-500">{donation.dateReceived}</td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-blue-primary/5 flex items-center justify-center">
-                        <span className="text-[10px] font-black text-blue-primary">{donation.donor.charAt(0)}</span>
-                      </div>
-                      <span className="text-sm font-bold text-slate-700">{donation.donor}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-sm font-bold text-slate-600 text-right">{formatCurrency(donation.unitCost)}</td>
-                  <td className="px-6 py-5 text-right">
-                    <span className="text-sm font-black text-blue-primary">{formatCurrency(donation.totalCost)}</span>
-                  </td>
-                </tr>
-              ))}
+              <AnimatePresence>
+                {initialData.map((donation) => (
+                  <motion.tr 
+                    key={donation.id} 
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="group hover:bg-slate-50/50 transition-colors"
+                  >
+                    <td className="px-6 py-5">
+                      <p className="text-sm font-black text-slate-900 group-hover:text-blue-primary transition-colors">{donation.item_name}</p>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="text-sm font-bold text-slate-600">{donation.quantity} {donation.unit}</span>
+                    </td>
+                    <td className="px-6 py-5 text-sm font-bold text-slate-500">{new Date(donation.date_received).toLocaleDateString()}</td>
+                    <td className="px-6 py-5">
+                      <span className="text-sm font-bold text-slate-700">{donation.donor_name}</span>
+                    </td>
+                    <td className="px-6 py-5 text-sm font-bold text-slate-600 text-right">{formatCurrency(Number(donation.unit_cost))}</td>
+                    <td className="px-6 py-5 text-right">
+                      <span className="text-sm font-black text-blue-primary">{formatCurrency(Number(donation.total_cost))}</span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <button 
+                        onClick={() => handleDelete(donation.id)}
+                        disabled={isDeleting === donation.id}
+                        className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </tbody>
           </table>
+          {initialData.length === 0 && (
+            <div className="py-20 flex flex-col items-center justify-center text-slate-400 bg-white">
+              <Package className="w-12 h-12 mb-4 opacity-10" />
+              <p className="font-bold">No donation records found.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

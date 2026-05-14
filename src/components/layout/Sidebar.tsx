@@ -15,8 +15,12 @@ import {
   HelpCircle,
   ChevronRight,
   ChevronLeft,
-  Menu
+  Menu,
+  LogOut
 } from "lucide-react";
+import { logout } from "@/features/auth/services/auth";
+import { useState } from "react";
+
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -135,7 +139,25 @@ export const Sidebar = () => {
             ))}
           </div>
         </div>
+
+        {/* Logout at the bottom of nav */}
+        <div className="mt-auto pt-4 border-t border-slate-50">
+          <button
+            onClick={async () => {
+              await logout();
+            }}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-xl w-full text-rose-500 hover:bg-rose-50 transition-all group",
+              isCollapsed ? "justify-center px-0" : ""
+            )}
+            title={isCollapsed ? "Logout" : ""}
+          >
+            <LogOut className="w-5 h-5 text-rose-400 group-hover:text-rose-500" />
+            {!isCollapsed && <span className="font-bold text-sm whitespace-nowrap">Sign Out</span>}
+          </button>
+        </div>
       </nav>
+
 
       {/* User Profile */}
       <div className={cn(
