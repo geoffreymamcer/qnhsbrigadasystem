@@ -119,7 +119,7 @@ export const DonationModal = ({ isOpen, onClose }: DonationModalProps) => {
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quantity</label>
                 <input 
-                  {...register("quantity")}
+                  {...register("quantity", { valueAsNumber: true })}
                   type="number" 
                   step="0.01"
                   placeholder="0"
@@ -171,7 +171,7 @@ export const DonationModal = ({ isOpen, onClose }: DonationModalProps) => {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₱</span>
                   <input 
-                    {...register("unit_cost")}
+                    {...register("unit_cost", { valueAsNumber: true })}
                     type="number" 
                     step="0.01"
                     placeholder="0.00"
@@ -185,7 +185,7 @@ export const DonationModal = ({ isOpen, onClose }: DonationModalProps) => {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-primary">₱</span>
                   <input 
-                    {...register("total_cost")}
+                    {...register("total_cost", { valueAsNumber: true })}
                     type="number" 
                     readOnly
                     className="w-full pl-8 pr-4 py-3 bg-blue-primary/5 border border-blue-primary/20 rounded-2xl text-sm focus:outline-none font-black text-blue-primary cursor-not-allowed"

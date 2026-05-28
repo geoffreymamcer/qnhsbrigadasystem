@@ -13,7 +13,7 @@ export async function getApiClient() {
 /**
  * Common error handling wrapper for API calls.
  */
-export async function handleApiCall<T>(promise: Promise<{ data: T | null; error: any }>) {
+export async function handleApiCall<T>(promise: PromiseLike<{ data: T | null; error: any }>) {
   try {
     const { data, error } = await promise;
     if (error) {

@@ -128,3 +128,60 @@ VALUES
 ('Cleaning and disinfection of school restrooms', 'completed', 'Used donated cleaning supplies from Rotary Club.', '2026-05-14'),
 ('Replacement of old faucet handles in the washing area', 'completed', 'Checked all water connections for leaks.', '2026-05-14'),
 ('Updating the Brigada Eskwela 2026 bulletin board', 'started but not yet completed', 'Need to print high-quality photos of activities.', '2026-05-14');
+
+-- 9. Physical Facilities Needs Assessment Table (BE Form 01)
+CREATE TABLE facility_needs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  facility_name TEXT NOT NULL,
+  condition TEXT NOT NULL CHECK (condition IN ('satisfactory', 'unsatisfactory')),
+  remarks TEXT,
+  improvement_needed TEXT,
+  materials_needed TEXT,
+  manpower_needed TEXT,
+  assessment_date DATE DEFAULT CURRENT_DATE NOT NULL,
+  
+  -- Metadata
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE facility_needs ENABLE ROW LEVEL SECURITY;
+
+-- Policies for facility_needs
+CREATE POLICY "Allow authenticated users to read facility needs" 
+ON facility_needs FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Allow authenticated users to insert facility needs" 
+ON facility_needs FOR INSERT TO authenticated WITH CHECK (auth.uid() = created_by);
+
+CREATE POLICY "Allow authenticated users to update their facility needs" 
+ON facility_needs FOR UPDATE TO authenticated USING (auth.uid() = created_by);
+
+CREATE POLICY "Allow authenticated users to delete their facility needs" 
+ON facility_needs FOR DELETE TO authenticated USING (auth.uid() = created_by);
+
+-- 10. Dummy Data for Testing (Facility Needs)
+INSERT INTO facility_needs (facility_name, condition, remarks, improvement_needed, materials_needed, manpower_needed, assessment_date)
+VALUES 
+('Roofs/Gutters', 'unsatisfactory', 'Clogged and rusting gutters on Building A.', 'Cleaning and patching leaks or replacement.', '2 gallons roof sealant, vulcanizing tape', '2 volunteers, school janitor', '2026-05-15'),
+('Ceilings', 'unsatisfactory', 'Water-damaged plywood sagging in Grade 7 hallway.', 'Removal of damaged sheets and replacement.', '2 sheets of 1/4 plywood, ceiling nails, white paint', '1 carpenter, 1 painter', '2026-05-15'),
+('Walls', 'satisfactory', 'Structurally sound. Needs light washing.', 'Minor cleaning/washing.', 'Liquid detergent, scrub brushes', '3 volunteer parents', '2026-05-15'),
+('Blackboards', 'satisfactory', 'Usable condition.', 'None.', 'None', 'None', '2026-05-15'),
+('Chairs/desks/tables', 'unsatisfactory', '15 armchairs have broken armrests/legs.', 'Welding of metal parts and woodwork replacement.', 'Plywood pieces, welding rods, wood glue', '1 welder, 1 carpenter', '2026-05-15'),
+('Water facilities', 'unsatisfactory', 'Low water pressure; leak in the main intake pipe.', 'Locate and repair pipe leak.', '1 roll Teflon tape, PVC cement, 2m PVC pipe (1/2 inch)', '1 plumber', '2026-05-15'),
+('Drainage System', 'unsatisfactory', 'Accumulated silt and plastic bottles blocking flow.', 'Declogging and clearing of open drainage channels.', 'Shovels, trash bags, utility gloves', '5 volunteers', '2026-05-15'),
+('Signages', 'satisfactory', 'Visible but needs paint touch-ups.', 'Repainting lettering.', 'Small cans of paint (black, yellow)', '1 volunteer artist', '2026-05-15'),
+('School garden', 'satisfactory', 'Plants are thriving. Needs weeding.', 'Weeding and soil conditioning.', 'Organic fertilizer, garden soil', '4 volunteer students/parents', '2026-05-15'),
+('Lighting', 'unsatisfactory', 'Flickering bulbs in 3 classrooms.', 'Replacement of defective fluorescent tubes.', '6 LED tube lamps', '1 electrician/maintenance staff', '2026-05-15'),
+('Windows', 'satisfactory', 'Glass panes intact, latches working.', 'None.', 'None', 'None', '2026-05-15'),
+('Doors', 'satisfactory', 'All classroom doors are functional.', 'None.', 'None', 'None', '2026-05-15'),
+('Comfort Rooms', 'unsatisfactory', 'Flush mechanisms broken in two cubicles.', 'Repair and replacement of toilet flush components.', '2 toilet repair flush valve kits', '1 plumber', '2026-05-15'),
+('School Grounds', 'satisfactory', 'Clean and free of tall grass.', 'Regular lawn trimming.', 'Grass cutter fuel', '1 operator', '2026-05-15'),
+('School Canteen/Clinic', 'satisfactory', 'Hygienic and well-ventilated.', 'None.', 'None', 'None', '2026-05-15'),
+('School Fence/ wall', 'satisfactory', 'Sturdy. Paint is slightly faded.', 'Repainting of concrete fence panels.', '5 cans green latex paint, paint rollers', '5 volunteer parents', '2026-05-15'),
+('Electricity', 'satisfactory', 'Power supply is stable across all buildings.', 'None.', 'None', 'None', '2026-05-15'),
+('Alternative gate', 'unsatisfactory', 'Hinges are rusted and stuck.', 'Lubrication and structural repair of gate hinges.', 'WD-40 spray, welding rods, metal primer', '1 welder', '2026-05-15'),
+('Reference Materials', 'satisfactory', 'Sufficient textbooks in the library.', 'Organization of shelves.', 'Bookends, labeling tape', '2 volunteer librarians', '2026-05-15'),
+('Laboratory equipment', 'satisfactory', 'Science lab tools are stored properly.', 'None.', 'None', 'None', '2026-05-15');

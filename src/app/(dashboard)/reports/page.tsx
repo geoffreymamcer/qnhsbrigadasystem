@@ -1,14 +1,17 @@
-import { AccomplishmentContainer } from "@/features/reports/components/AccomplishmentContainer";
-import { getAccomplishments } from "@/features/reports/services/reports";
+import { ReportsTabsContainer } from "@/features/reports/components/ReportsTabsContainer";
+import { getAccomplishments, getFacilityNeeds } from "@/features/reports/services/reports";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Accomplishment Reports | Brigada Eskwela 2026-2027",
-  description: "Monitor and track daily school improvement activities and accomplishments.",
+  title: "Reports & Needs Assessment | Brigada Eskwela 2026-2027",
+  description: "Monitor school accomplishments and track physical facilities maintenance needs assessments.",
 };
 
 export default async function ReportsPage() {
-  const initialData = await getAccomplishments();
+  const [accomplishments, facilityNeeds] = await Promise.all([
+    getAccomplishments(),
+    getFacilityNeeds()
+  ]);
 
   return (
     <div className="min-h-screen relative">
@@ -19,7 +22,10 @@ export default async function ReportsPage() {
       </div>
 
       <div className="relative z-10">
-        <AccomplishmentContainer initialData={initialData} />
+        <ReportsTabsContainer 
+          initialAccomplishments={accomplishments} 
+          initialFacilityNeeds={facilityNeeds} 
+        />
       </div>
 
       {/* Footer */}
@@ -31,3 +37,4 @@ export default async function ReportsPage() {
     </div>
   );
 }
+
