@@ -185,3 +185,36 @@ VALUES
 ('Alternative gate', 'unsatisfactory', 'Hinges are rusted and stuck.', 'Lubrication and structural repair of gate hinges.', 'WD-40 spray, welding rods, metal primer', '1 welder', '2026-05-15'),
 ('Reference Materials', 'satisfactory', 'Sufficient textbooks in the library.', 'Organization of shelves.', 'Bookends, labeling tape', '2 volunteer librarians', '2026-05-15'),
 ('Laboratory equipment', 'satisfactory', 'Science lab tools are stored properly.', 'None.', 'None', 'None', '2026-05-15');
+
+
+-- 11. Attendance Summary Table
+CREATE TABLE attendance_summary (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  record_date DATE DEFAULT CURRENT_DATE NOT NULL,
+  category_id TEXT NOT NULL,
+  volunteer_count INTEGER NOT NULL DEFAULT 0 CHECK (volunteer_count >= 0),
+  
+  -- Metadata
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  
+  -- Prevents duplicate entries of the same category on the same day
+  CONSTRAINT unique_date_category UNIQUE(record_date, category_id)
+);
+
+-- Enable RLS
+ALTER TABLE attendance_summary ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Allow authenticated users to read attendance summary" 
+ON attendance_summary FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Allow authenticated users to insert attendance summary" 
+ON attendance_summary FOR INSERT TO authenticated WITH CHECK (auth.uid() = created_by);
+
+CREATE POLICY "Allow authenticated users to update their attendance summary" 
+ON attendance_summary FOR UPDATE TO authenticated USING (auth.uid() = created_by);
+
+CREATE POLICY "Allow authenticated users to delete their attendance summary" 
+ON attendance_summary FOR DELETE TO authenticated USING (auth.uid() = created_by);

@@ -16,7 +16,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Menu,
-  LogOut
+  LogOut,
+  ClipboardCheck
 } from "lucide-react";
 import { logout } from "@/features/auth/services/auth";
 import { useState } from "react";
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Organization", href: "/organization", icon: Users },
   { name: "Donations", href: "/donations", icon: Heart },
+  { name: "Attendance Summary", href: "/attendance-summary", icon: ClipboardCheck },
   { name: "Reports", href: "/reports", icon: FileText },
   { name: "Forms", href: "/forms", icon: FolderDown },
 ];
