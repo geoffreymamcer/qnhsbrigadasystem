@@ -21,6 +21,7 @@ import {
   ClipboardCheck,
   Plus
 } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { cn } from "@/lib/utils/utils";
 import { AttendanceInputModal } from "./AttendanceInputModal";
 import { saveAttendanceSummary } from "@/features/attendance-summary/services/attendance";
@@ -111,14 +112,17 @@ const INITIAL_ATTENDANCE_DATA: Record<string, Record<string, number>> = {
   }
 };
 
-const AVAILABLE_DATES = Object.keys(INITIAL_ATTENDANCE_DATA).sort();
-
 interface AttendanceSummaryContainerProps {
   initialData: Record<string, Record<string, number>>;
+  availableDates: string[];
 }
 
-export const AttendanceSummaryContainer = ({ initialData }: AttendanceSummaryContainerProps) => {
-  const [selectedDate, setSelectedDate] = useState("2026-05-25");
+export const AttendanceSummaryContainer = ({ initialData, availableDates }: AttendanceSummaryContainerProps) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const defaultSelectedDate = availableDates.includes(today)
+    ? today
+    : availableDates[0] || Object.keys(initialData)[0] || "2026-05-25";
+  const [selectedDate, setSelectedDate] = useState(defaultSelectedDate);
   const [attendance, setAttendance] = useState<Record<string, Record<string, number>>>(() => {
     const base = { ...INITIAL_ATTENDANCE_DATA };
     Object.entries(initialData || {}).forEach(([date, counts]) => {
@@ -131,6 +135,10 @@ export const AttendanceSummaryContainer = ({ initialData }: AttendanceSummaryCon
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const dateOptions = availableDates.length > 0
+    ? availableDates
+    : Object.keys(attendance).sort();
 
   // Notification state
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
@@ -162,9 +170,9 @@ export const AttendanceSummaryContainer = ({ initialData }: AttendanceSummaryCon
     return sectorData.reduce((acc, s) => acc + s.volunteersCount, 0);
   }, [sectorData]);
 
-  // 6-day trend chart data calculation
+  // Trend chart data calculation
   const historicalTrendData = useMemo(() => {
-    return AVAILABLE_DATES.map(date => {
+    return dateOptions.map(date => {
       const counts = attendance[date] || {};
       
       const dayData: Record<string, any> = {
@@ -240,32 +248,37 @@ export const AttendanceSummaryContainer = ({ initialData }: AttendanceSummaryCon
     showToast("Cleared all category values for " + selectedDate, "info");
   };
 
-  // Export CSV
+  // Export report
   const handleExportCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Date,Sector,Volunteer Category,Volunteer Count\n";
+    const defaultValue = selectedDate;
+    const promptText = `Enter dates to export (comma-separated).\nLeave blank to export the current selected date (${selectedDate}).\n\nAvailable dates:\n${dateOptions.join('\n')}`;
+    const input = window.prompt(promptText, defaultValue);
+    const selected = (input || "").split(',').map(s => s.trim()).filter(Boolean);
+    const datesToExport = selected.length > 0 ? selected : [selectedDate];
 
-    Object.keys(attendance).forEach(date => {
+    const rows: any[] = [];
+    rows.push(["Date", "Sector", "Volunteer Category", "Volunteer Count"]);
+
+    datesToExport.forEach((date) => {
       const counts = attendance[date] || {};
       SECTORS_CONFIG.forEach(sec => {
         sec.categories.forEach(cat => {
           const count = counts[cat.id] || 0;
-          const catName = cat.name.includes(",") ? `"${cat.name}"` : cat.name;
-          const secName = sec.name.includes(",") ? `"${sec.name}"` : sec.name;
-          csvContent += `${date},${secName},${catName},${count}\n`;
+          rows.push([date, sec.name, cat.name, count]);
         });
       });
     });
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `brigada-attendance-summary-report.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showToast("Exported database to CSV file", "success");
+    try {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Attendance Summary');
+      XLSX.writeFile(wb, `brigada-attendance-summary-report.xlsx`);
+      showToast("Exported attendance summary to Excel", "success");
+    } catch (err) {
+      console.error('Export Excel error', err);
+      showToast('Failed to export Excel file', 'info');
+    }
   };
 
   // Print function
@@ -289,13 +302,13 @@ export const AttendanceSummaryContainer = ({ initialData }: AttendanceSummaryCon
       )}
 
       {/* Input Modal */}
-      <AttendanceInputModal
+        <AttendanceInputModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         selectedDate={selectedDate}
         onSave={handleSaveModalData}
         initialCounts={currentCounts}
-        availableDates={AVAILABLE_DATES}
+        availableDates={dateOptions}
       />
 
       {/* Printable Report Header (Hidden in regular screen browser) */}
@@ -343,7 +356,7 @@ export const AttendanceSummaryContainer = ({ initialData }: AttendanceSummaryCon
               onChange={(e) => setSelectedDate(e.target.value)}
               className="bg-transparent border-none text-xs font-black text-slate-700 focus:outline-none pr-6 cursor-pointer"
             >
-              {AVAILABLE_DATES.map(d => (
+              {dateOptions.map(d => (
                 <option key={d} value={d}>
                   {new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 </option>
@@ -362,10 +375,10 @@ export const AttendanceSummaryContainer = ({ initialData }: AttendanceSummaryCon
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-3 bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-primary border border-slate-200 rounded-2xl text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer"
-            title="Export CSV data"
+            title="Export Excel report"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            Export CSV
+            Export Report
           </button>
 
           <button

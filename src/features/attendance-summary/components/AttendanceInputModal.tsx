@@ -71,11 +71,20 @@ export const AttendanceInputModal = ({
   const [counts, setCounts] = useState<Record<string, number>>(() => 
     Object.fromEntries(CATEGORIES_FLAT.map(c => [c.id, 0]))
   );
+  const [dateError, setDateError] = useState("");
+  const availableDatesKey = availableDates.join(',');
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const isValidDate = (value: string) => {
+    const parsed = new Date(value);
+    return value.length === 10 && !Number.isNaN(parsed.getTime());
+  };
 
   // Sync state with open events
   useEffect(() => {
     if (isOpen) {
-      setModalDate(selectedDate);
+      setModalDate(today);
       // Clone initial counts
       const initialMap: Record<string, number> = {};
       CATEGORIES_FLAT.forEach(c => {
@@ -83,7 +92,7 @@ export const AttendanceInputModal = ({
       });
       setCounts(initialMap);
     }
-  }, [isOpen, selectedDate, initialCounts]);
+  }, [isOpen, initialCounts, availableDatesKey, today]);
 
   const handleInputChange = (id: string, value: string) => {
     const parsed = Math.max(0, parseInt(value) || 0);
@@ -103,6 +112,11 @@ export const AttendanceInputModal = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidDate(modalDate)) {
+      setDateError('Please select a valid attendance date.');
+      return;
+    }
+    setDateError("");
     onSave(modalDate, counts);
     onClose();
   };
@@ -159,17 +173,13 @@ export const AttendanceInputModal = ({
                 </div>
 
                 <div className="w-full md:w-auto">
-                  <select
+                  <input
+                    type="date"
                     value={modalDate}
                     onChange={(e) => setModalDate(e.target.value)}
-                    className="w-full md:w-60 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-primary/10 focus:border-blue-primary cursor-pointer"
-                  >
-                    {availableDates.map(d => (
-                      <option key={d} value={d}>
-                        {new Date(d).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-                      </option>
-                    ))}
-                  </select>
+                    className="w-full md:w-60 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-primary/10 focus:border-blue-primary"
+                  />
+                  {dateError && <p className="mt-2 text-xs text-rose-600 font-bold">{dateError}</p>}
                 </div>
               </div>
 

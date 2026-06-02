@@ -1,5 +1,5 @@
 import { AttendanceSummaryContainer } from "@/features/attendance-summary/components/AttendanceSummaryContainer";
-import { getAttendanceSummary } from "@/features/attendance-summary/services/attendance";
+import { getAttendanceDates, getAttendanceSummary } from "@/features/attendance-summary/services/attendance";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 export default async function AttendanceSummaryPage() {
   const initialData = await getAttendanceSummary();
+  const availableDates = await getAttendanceDates();
 
   return (
     <div className="min-h-screen relative p-8">
@@ -19,7 +20,7 @@ export default async function AttendanceSummaryPage() {
       </div>
 
       <div className="relative z-10">
-        <AttendanceSummaryContainer initialData={initialData} />
+        <AttendanceSummaryContainer initialData={initialData} availableDates={availableDates} />
       </div>
 
       {/* Footer */}
