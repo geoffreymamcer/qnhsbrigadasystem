@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { 
+import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar,
   XAxis, YAxis, Tooltip, Legend, CartesianGrid
 } from "recharts";
-import { 
-  Calendar, 
-  Download, 
-  Printer, 
-  Search, 
+import {
+  Calendar,
+  Download,
+  Printer,
+  Search,
   RefreshCw,
   Users2,
   Building2,
@@ -36,7 +36,8 @@ const SECTORS_CONFIG = [
     textClass: "text-blue-600",
     borderClass: "border-blue-100",
     categories: [
-      { id: "ngo", name: "NGO (PTA, SGC, Gawad Kalinga)" }
+      { id: "ngo", name: "NGO (PTA, SGC, Gawad Kalinga)" },
+      { id: "corporation", name: "Corporation" }
     ]
   },
   {
@@ -81,32 +82,32 @@ const CATEGORIES_FLAT = SECTORS_CONFIG.flatMap(s => s.categories);
 // Initial Mock Attendance Data for 6-day Brigada Eskwela
 const INITIAL_ATTENDANCE_DATA: Record<string, Record<string, number>> = {
   "2026-05-25": {
-    ngo: 12, parents: 110, alumni: 15, individual: 8, religious: 20, congressional: 3,
+    ngo: 12, corporation: 5, parents: 110, alumni: 15, individual: 8, religious: 20, congressional: 3,
     provincial_off: 2, city_off: 4, barangay_off: 10, sk_off: 12, gov_emp: 15,
     uniformed: 6, afp: 8, barangay_work: 12, other_vol: 25
   },
   "2026-05-26": {
-    ngo: 15, parents: 145, alumni: 22, individual: 12, religious: 18, congressional: 2,
+    ngo: 15, corporation: 8, parents: 145, alumni: 22, individual: 12, religious: 18, congressional: 2,
     provincial_off: 1, city_off: 5, barangay_off: 8, sk_off: 15, gov_emp: 10,
     uniformed: 8, afp: 4, barangay_work: 10, other_vol: 30
   },
   "2026-05-27": {
-    ngo: 8, parents: 98, alumni: 10, individual: 5, religious: 15, congressional: 0,
+    ngo: 8, corporation: 3, parents: 98, alumni: 10, individual: 5, religious: 15, congressional: 0,
     provincial_off: 0, city_off: 2, barangay_off: 6, sk_off: 8, gov_emp: 8,
     uniformed: 4, afp: 0, barangay_work: 8, other_vol: 14
   },
   "2026-05-28": {
-    ngo: 10, parents: 120, alumni: 18, individual: 9, religious: 22, congressional: 1,
+    ngo: 10, corporation: 4, parents: 120, alumni: 18, individual: 9, religious: 22, congressional: 1,
     provincial_off: 3, city_off: 3, barangay_off: 9, sk_off: 10, gov_emp: 12,
     uniformed: 6, afp: 5, barangay_work: 11, other_vol: 20
   },
   "2026-05-29": {
-    ngo: 18, parents: 160, alumni: 28, individual: 14, religious: 30, congressional: 4,
+    ngo: 18, corporation: 10, parents: 160, alumni: 28, individual: 14, religious: 30, congressional: 4,
     provincial_off: 2, city_off: 6, barangay_off: 12, sk_off: 22, gov_emp: 20,
     uniformed: 10, afp: 12, barangay_work: 15, other_vol: 45
   },
   "2026-05-30": {
-    ngo: 25, parents: 210, alumni: 45, individual: 25, religious: 40, congressional: 5,
+    ngo: 25, corporation: 15, parents: 210, alumni: 45, individual: 25, religious: 40, congressional: 5,
     provincial_off: 4, city_off: 8, barangay_off: 15, sk_off: 28, gov_emp: 25,
     uniformed: 12, afp: 15, barangay_work: 18, other_vol: 60
   }
@@ -150,7 +151,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
 
   // Active day counts
   const currentCounts = useMemo(() => {
-    return attendance[selectedDate] || 
+    return attendance[selectedDate] ||
       Object.fromEntries(CATEGORIES_FLAT.map(c => [c.id, 0]));
   }, [attendance, selectedDate]);
 
@@ -174,7 +175,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
   const historicalTrendData = useMemo(() => {
     return dateOptions.map(date => {
       const counts = attendance[date] || {};
-      
+
       const dayData: Record<string, any> = {
         dateString: date,
         label: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -210,12 +211,12 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
         ...prev,
         [date]: newCounts
       }));
-      
+
       // Auto-navigate to that date if it differs from current date
       if (date !== selectedDate) {
         setSelectedDate(date);
       }
-      
+
       await saveAttendanceSummary(date, newCounts);
       showToast(`Successfully saved volunteer attendance for ${new Date(date).toLocaleDateString()}`, "success");
     } catch (err: any) {
@@ -248,36 +249,47 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
     showToast("Cleared all category values for " + selectedDate, "info");
   };
 
-  // Export report
-  const handleExportCSV = () => {
+  // Export report using the district template file from the server
+  const handleExportCSV = async () => {
     const defaultValue = selectedDate;
     const promptText = `Enter dates to export (comma-separated).\nLeave blank to export the current selected date (${selectedDate}).\n\nAvailable dates:\n${dateOptions.join('\n')}`;
     const input = window.prompt(promptText, defaultValue);
+    if (input === null) return; // User cancelled
     const selected = (input || "").split(',').map(s => s.trim()).filter(Boolean);
     const datesToExport = selected.length > 0 ? selected : [selectedDate];
 
-    const rows: any[] = [];
-    rows.push(["Date", "Sector", "Volunteer Category", "Volunteer Count"]);
-
-    datesToExport.forEach((date) => {
-      const counts = attendance[date] || {};
-      SECTORS_CONFIG.forEach(sec => {
-        sec.categories.forEach(cat => {
-          const count = counts[cat.id] || 0;
-          rows.push([date, sec.name, cat.name, count]);
-        });
-      });
-    });
-
+    showToast("Generating report from template...", "info");
     try {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, 'Attendance Summary');
-      XLSX.writeFile(wb, `brigada-attendance-summary-report.xlsx`);
+      const datesParam = datesToExport.join(',');
+      const response = await fetch(`/api/export-attendance?dates=${encodeURIComponent(datesParam)}`);
+
+      if (!response.ok) {
+        // Safely extract the server error message
+        const errorText = await response.text();
+        throw new Error(errorText || 'Export failed on the server');
+      }
+
+      // Convert response to blob and trigger download in browser
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `BE Form 1 Report (District) - QNHS.xls`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
       showToast("Exported attendance summary to Excel", "success");
-    } catch (err) {
-      console.error('Export Excel error', err);
-      showToast('Failed to export Excel file', 'info');
+    } catch (err: any) {
+      console.error('Export Excel error:', err);
+
+      // Display the error gracefully to the user via your toast system
+      const errorMessage = err.message.includes('TypedPropertyValue')
+        ? 'Template file contains unsupported metadata. Please clear template properties.'
+        : 'Failed to export Excel file';
+
+      showToast(errorMessage, 'info');
     }
   };
 
@@ -292,8 +304,8 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
       {toast && (
         <div className={cn(
           "fixed bottom-5 right-5 z-[100] flex items-center gap-3 px-5 py-4 bg-white rounded-2xl shadow-xl border animate-bounce",
-          toast.type === "success" 
-            ? "border-emerald-200 text-emerald-800" 
+          toast.type === "success"
+            ? "border-emerald-200 text-emerald-800"
             : "border-blue-200 text-blue-800"
         )}>
           {toast.type === "success" ? <Sparkles className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-blue-600" />}
@@ -302,7 +314,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
       )}
 
       {/* Input Modal */}
-        <AttendanceInputModal
+      <AttendanceInputModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         selectedDate={selectedDate}
@@ -394,7 +406,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
 
       {/* Screen Layout: Main Dashboard Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4">
-        
+
         {/* KPI: Total Volunteers */}
         <div className="bg-white rounded-3xl border border-slate-100 p-6 flex items-center gap-5 shadow-[0_2px_15px_rgba(37,99,235,0.02)] relative overflow-hidden group hover:border-blue-200 transition-all duration-300">
           <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50/50 rounded-bl-full pointer-events-none transition-all group-hover:scale-110" />
@@ -451,7 +463,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
 
       {/* Configuration & Charts Split Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:hidden">
-        
+
         {/* Helper Instructions card */}
         <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_2px_15px_rgba(37,99,235,0.02)] flex flex-col justify-between">
           <div>
@@ -506,14 +518,14 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
                   <Tooltip formatter={(value: any) => [`${value} Pax`, "Volunteers"]} />
                 </PieChart>
               </ResponsiveContainer>
-              
+
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-2xl font-black text-slate-800">{totalVolunteers}</span>
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Volunteers</span>
               </div>
             </div>
           )}
-          
+
           {/* Pie Chart Legend */}
           <div className="flex flex-col gap-1.5 mt-3">
             {sectorData.map(sec => (
@@ -551,7 +563,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
 
       {/* Data Entries Tables */}
       <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_2px_15px_rgba(37,99,235,0.02)] print:border-none print:shadow-none print:p-0">
-        
+
         {/* Table Search & Tools */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 print:hidden">
           <div className="relative w-full md:max-w-md">
@@ -595,7 +607,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
         <div className="flex flex-col gap-10">
           {SECTORS_CONFIG.map((sector) => {
             // Filter categories based on search query
-            const filteredCategories = sector.categories.filter(cat => 
+            const filteredCategories = sector.categories.filter(cat =>
               cat.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
 
@@ -649,7 +661,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
                       {filteredCategories.map((cat, idx) => {
                         const countVal = currentCounts[cat.id] || 0;
                         const percentage = totalVolunteers ? Math.round((countVal / totalVolunteers) * 100) : 0;
-                        
+
                         return (
                           <tr key={cat.id} className="group hover:bg-slate-50/50 transition-colors">
                             <td className="px-6 py-4 text-xs font-bold text-slate-400">{idx + 1}</td>
@@ -683,7 +695,7 @@ export const AttendanceSummaryContainer = ({ initialData, availableDates }: Atte
             <span>100% Share</span>
           </div>
         </div>
-        
+
       </div>
     </div>
   );

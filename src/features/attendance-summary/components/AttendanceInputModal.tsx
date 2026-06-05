@@ -13,7 +13,8 @@ const SECTORS_CONFIG = [
     icon: Building2,
     colorClass: "text-blue-600 border-blue-100 bg-blue-50/50",
     categories: [
-      { id: "ngo", name: "NGO (PTA, SGC, Gawad Kalinga)", placeholder: "NGO volunteers" }
+      { id: "ngo", name: "NGO (PTA, SGC, Gawad Kalinga)", placeholder: "NGO volunteers" },
+      { id: "corporation", name: "Corporation", placeholder: "Corporate sponsors/volunteers" }
     ]
   },
   {

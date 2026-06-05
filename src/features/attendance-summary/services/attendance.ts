@@ -84,12 +84,13 @@ export async function saveAttendanceSummary(date: string, counts: Record<string,
   try {
     const filePath = path.join(process.cwd(), 'Forms', 'BE Form 1 Report (District).xls');
     if (fs.existsSync(filePath)) {
-      const workbook = XLSX.readFile(filePath, { cellDates: true });
+      const workbook = XLSX.readFile(filePath, { cellDates: true, bookProps: false });
       const sheetName = workbook.SheetNames[0];
       const ws = workbook.Sheets[sheetName] || {};
 
       const colMap: Record<string, string> = {
         ngo: 'D',
+        corporation: 'E',
         parents: 'F',
         alumni: 'G',
         individual: 'H',
